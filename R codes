@@ -1,0 +1,445 @@
+> library(readr)
+> mordefault <- read_csv("C:/Users/Yenem/Desktop/CAPSTONE/mordefault.csv")
+Parsed with column specification:
+cols(
+  creditScore = col_integer(),
+  houseAge = col_integer(),
+  yearsEmploy = col_integer(),
+  ccDebt = col_integer(),
+  year = col_integer(),
+  default = col_integer()
+)
+> View(mordefault)
+> attach(mordefault)
+> mordefault$default<-as.factor(mordefault$default)
+> str(mordefault)
+Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	1000000 obs. of  6 variables:
+ $ creditScore: int  617 623 758 687 663 676 721 680 734 688 ...
+ $ houseAge   : int  20 11 17 22 15 10 23 18 9 16 ...
+ $ yearsEmploy: int  8 7 4 5 6 2 2 7 5 8 ...
+ $ ccDebt     : int  4410 5609 7250 3761 6746 7106 2280 2831 3867 6238 ...
+ $ year       : int  2009 2009 2009 2009 2009 2009 2009 2009 2009 2009 ...
+ $ default    : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...
+ - attr(*, "spec")=List of 2
+  ..$ cols   :List of 6
+  .. ..$ creditScore: list()
+  .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
+  .. ..$ houseAge   : list()
+  .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
+  .. ..$ yearsEmploy: list()
+  .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
+  .. ..$ ccDebt     : list()
+  .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
+  .. ..$ year       : list()
+  .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
+  .. ..$ default    : list()
+  .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
+  ..$ default: list()
+  .. ..- attr(*, "class")= chr  "collector_guess" "collector"
+  ..- attr(*, "class")= chr "col_spec"
+> mordefaultNEW<-mordefault[-5]
+> head(mordefaultNEW)
+# A tibble: 6 × 5
+  creditScore houseAge yearsEmploy ccDebt default
+        <int>    <int>       <int>  <int>  <fctr>
+1         617       20           8   4410       0
+2         623       11           7   5609       0
+3         758       17           4   7250       0
+4         687       22           5   3761       0
+5         663       15           6   6746       0
+6         676       10           2   7106       0
+> library(ggplot2)
+> library(lattice)
+> library(class)
+> library(rpart)
+> library(MASS)
+> library(caret)
+> validation_index <- createDataPartition(mordefaultNEW$default, p=0.80, list=FALSE)
+> validation <- mordefaultNEW[-validation_index,]
+> trainingData <- mordefaultNEW[validation_index,]
+> testingData<-validation
+> str(trainingData)
+Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	800001 obs. of  5 variables:
+ $ creditScore: int  623 758 687 663 676 680 734 688 699 701 ...
+ $ houseAge   : int  11 17 22 15 10 18 9 16 30 19 ...
+ $ yearsEmploy: int  7 4 5 6 2 7 5 8 6 6 ...
+ $ ccDebt     : int  5609 7250 3761 6746 7106 2831 3867 6238 4109 4122 ...
+ $ default    : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...
+> str(testingData)
+Classes ‘tbl_df’, ‘tbl’ and 'data.frame':	199999 obs. of  5 variables:
+ $ creditScore: int  617 721 779 683 774 728 667 769 724 631 ...
+ $ houseAge   : int  20 23 17 25 6 9 6 34 21 38 ...
+ $ yearsEmploy: int  8 2 2 5 5 4 2 6 5 5 ...
+ $ ccDebt     : int  4410 2280 2744 4752 6575 803 8326 5958 2353 7054 ...
+ $ default    : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...
+
+
+
+
+> control <- trainControl(method="cv", number=10)
+
+> metric <- "Accuracy"
+
+
+> set.seed(7)
+> fit.cart <- train(default~., data=trainingData, method="rpart", metric=metric, trControl=control)
+> set.seed(7)
+> fit.lda <- train(default~., data=trainingData, method="lda", metric=metric, trControl=control)
+> set.seed(7)
+> fit.glm <- train(default~., data=trainingData, method="glm", metric=metric, trControl=control)
+
+
+
+
+> results <- resamples(list(lda=fit.lda, cart=fit.cart, glm=fit.glm))
+> summary(results)
+
+Call:
+summary.resamples(object = results)
+
+Models: lda, cart, glm 
+Number of resamples: 10 
+
+Accuracy 
+       Min. 1st Qu. Median   Mean 3rd Qu.   Max. NA's
+lda  0.9768  0.9769 0.9772 0.9771  0.9772 0.9774    0
+cart 0.9768  0.9769 0.9772 0.9771  0.9772 0.9777    0
+glm  0.9767  0.9771 0.9773 0.9773  0.9775 0.9777    0
+
+Kappa 
+       Min. 1st Qu. Median   Mean 3rd Qu.   Max. NA's
+lda  0.1782  0.1902 0.1998 0.1972  0.2048 0.2143    0
+cart 0.2172  0.2401 0.2615 0.2640  0.2925 0.3142    0
+glm  0.2906  0.3036 0.3082 0.3075  0.3147 0.3228    0
+
+dotplot(results)
+
+
+
+> print(fit.glm)
+Generalized Linear Model 
+
+800001 samples
+     4 predictor
+     2 classes: '0', '1' 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold) 
+Summary of sample sizes: 720001, 720000, 720000, 720001, 720002, 720000, ... 
+Resampling results:
+
+  Accuracy  Kappa    
+  0.97727   0.3074537
+
+
+> summary(fit.glm)
+
+Call:
+NULL
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-2.7384  -0.1303  -0.0536  -0.0211   3.9232  
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -7.643e+00  1.280e-01  -59.69   <2e-16 ***
+creditScore -6.513e-03  1.722e-04  -37.83   <2e-16 ***
+houseAge     3.110e-02  1.120e-03   27.77   <2e-16 ***
+yearsEmploy -2.625e-01  4.382e-03  -59.90   <2e-16 ***
+ccDebt       1.302e-03  6.584e-06  197.82   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 185532  on 800000  degrees of freedom
+Residual deviance: 105383  on 799996  degrees of freedom
+AIC: 105393
+
+Number of Fisher Scoring iterations: 8
+
+> print(fit.cart)
+CART 
+
+800001 samples
+     4 predictor
+     2 classes: '0', '1' 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold) 
+Summary of sample sizes: 720001, 720000, 720000, 720001, 720002, 720000, ... 
+Resampling results across tuning parameters:
+
+  cp           Accuracy   Kappa    
+  0.002033547  0.9771025  0.2640172
+  0.005506997  0.9769600  0.2447136
+  0.031703127  0.9759038  0.1291216
+
+Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was cp = 0.002033547.
+
+
+> print(fit.lda)
+Linear Discriminant Analysis 
+
+800001 samples
+     4 predictor
+     2 classes: '0', '1' 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold) 
+Summary of sample sizes: 720001, 720000, 720000, 720001, 720002, 720000, ... 
+Resampling results:
+
+  Accuracy  Kappa    
+  0.977115  0.1972451
+
+Make prediction using the most accurate model (GLM)
+
+> predictions <- predict(fit.glm, testingData)
+> confusionMatrix(predictions, testingData$default)
+Confusion Matrix and Statistics
+
+          Reference
+Prediction      0      1
+         0 194380   3891
+         1    671   1057
+                                          
+               Accuracy : 0.9772          
+                 95% CI : (0.9765, 0.9778)
+    No Information Rate : 0.9753          
+    P-Value [Acc > NIR] : 9.561e-09       
+                                          
+                  Kappa : 0.3078          
+ Mcnemar's Test P-Value : < 2.2e-16       
+                                          
+            Sensitivity : 0.9966          
+            Specificity : 0.2136          
+         Pos Pred Value : 0.9804          
+         Neg Pred Value : 0.6117          
+             Prevalence : 0.9753          
+         Detection Rate : 0.9719          
+   Detection Prevalence : 0.9914          
+      Balanced Accuracy : 0.6051          
+                                          
+       'Positive' Class : 0  
+
+
+> predictions <- predict(fit.cart, testingData)
+> confusionMatrix(predictions, testingData$default)
+Confusion Matrix and Statistics
+
+          Reference
+Prediction      0      1
+         0 194522   4113
+         1    529    835
+                                          
+               Accuracy : 0.9768          
+                 95% CI : (0.9761, 0.9774)
+    No Information Rate : 0.9753          
+    P-Value [Acc > NIR] : 4.481e-06       
+                                          
+                  Kappa : 0.2566          
+ Mcnemar's Test P-Value : < 2.2e-16       
+                                          
+            Sensitivity : 0.9973          
+            Specificity : 0.1688          
+         Pos Pred Value : 0.9793          
+         Neg Pred Value : 0.6122          
+             Prevalence : 0.9753          
+         Detection Rate : 0.9726          
+   Detection Prevalence : 0.9932          
+      Balanced Accuracy : 0.5830          
+                                          
+       'Positive' Class : 0        
+
+
+
+Model evaluation using confusion matrix 
+
+
+> library(readr)
+> mordefault <- read_csv("C:/Users/Yenem/Desktop/CAPSTONE/mordefault.csv")
+Parsed with column specification:
+cols(
+  creditScore = col_integer(),
+  houseAge = col_integer(),
+  yearsEmploy = col_integer(),
+  ccDebt = col_integer(),
+  year = col_integer(),
+  default = col_integer()
+)
+|====================================================| 100%   20 MB
+> View(mordefault)
+> attach(mordefault)
+> mordefault$default<-as.factor(mordefault$default)
+> mordefaultNEW<-mordefault[-5]
+> splitData<-sample(2,nrow(mordefaultNEW),replace = TRUE,prob = c(0.8,0.2))
+> training<-mordefaultNEW[splitData==1,]
+> testing<-mordefaultNEW[splitData==2,]
+> model1<-glm(default~.,data=training,family = "binomial")
+> summary(model1)
+
+Call:
+glm(formula = default ~ ., family = "binomial", data = training)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-2.7312  -0.1308  -0.0540  -0.0214   3.9191  
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -7.661e+00  1.280e-01  -59.85   <2e-16 ***
+creditScore -6.425e-03  1.720e-04  -37.36   <2e-16 ***
+houseAge     3.062e-02  1.117e-03   27.42   <2e-16 ***
+yearsEmploy -2.623e-01  4.370e-03  -60.01   <2e-16 ***
+ccDebt       1.298e-03  6.566e-06  197.69   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 185300  on 800061  degrees of freedom
+Residual deviance: 105607  on 800057  degrees of freedom
+AIC: 105617
+
+Number of Fisher Scoring iterations: 8
+> PredictModel<-predict(model1,testing,type="response")
+> summary(PredictModel)
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+0.0000003 0.0002822 0.0017400 0.0248300 0.0103900 0.9927000 
+> PredictModel[1]
+           1 
+0.0006197666 
+> PredictModel[2]
+          2 
+0.002784123 
+
+
+Classification error
+> modelpredict<-rep("0",199938)
+> modelpredict[PredictModel>0.5]<-"1"
+> tab<-table(modelpredict,testing$default)
+> print(tab)
+            
+modelpredict      0      1
+           0 194324   3889
+           1    634   1091
+> 1-sum(diag(tab))/sum(tab)
+[1] 0.02262201
+> sum(diag(tab))/sum(tab)
+[1] 0.977378
+
+ROC Curve AND AUC 
+> library(ROCR)
+Loading required package: gplots
+
+Attaching package: ‘gplots’
+
+The following object is masked from ‘package:stats’:
+
+    lowess
+> pred<-predict(model1,testing)
+> pred<-prediction(pred,testing$default)
+
+
+> Roc<-performance(pred,"tpr","fpr")
+> plot(Roc,colorize=T,main="ROC Curve For Logistic Regression Model")
+> abline(a=0,b=1)
+
+
+
+AUC<-performance(pred,"auc")
+> AUC<-unlist(slot(AUC,"y.values")
++ )
+> AUC<-round(AUC,4)
+> AUC
+[1] 0.954
+plot(Roc,colorize=T,main="ROC Curve For Logistic Regression Model")
+> legend(0.6,0.2,AUC,title = "AUC",cex = 1.2)
+ 
+
+
+
+Linear Discriminant Analysis (LDA)
+
+
+> library(MASS)
+> fit.LDA<-lda(default~.,data=training)
+> fit.LDA
+Call:
+lda(default ~ ., data = training)
+
+Prior probabilities of groups:
+         0          1 
+0.97530066 0.02469934 
+
+Group means:
+  creditScore houseAge yearsEmploy   ccDebt
+0    700.2549 19.96861    5.021617 4912.689
+1    689.1021 21.23779    4.272102 8611.739
+
+Coefficients of linear discriminants:
+                      LD1
+creditScore -0.0024615681
+houseAge     0.0117675851
+yearsEmploy -0.1020547261
+ccDebt       0.0005111241
+
+
+> > predLDA<-predict(fit.LDA,testing)
+> names(predLDA)
+[1] "class"     "posterior" "x"   
+
+
+Model accuracy of LDA 
+
+> predLDA<-predict(fit.LDA,testing)
+> names(predLDA)
+[1] "class"     "posterior" "x"        
+> predDefault<-predLDA$class
+> predClass<-predLDA$class
+> table(predClass,testing$default)
+         
+predClass      0      1
+        0 194759   4370
+        1    199    610
+> mean(predClass==testing$default)
+[1] 0.9771479
+
+
+> 
+
+Classification tree 
+> library(rpart)
+> tree1<-rpart(default~.,data=training)
+> library(rpart.plot)
+> rpart.plot(tree1)
+
+ 
+
+
+rpart.plot(tree1,extra = 1)
+ 
+rpart.plot(tree1,extra = 2)
+
+ 
+rpart.plot(tree1,extra = 4)
+ 
+Predicting and Accuracy for decision tree 
+
+> rpart_predict <- predict(tree1,testing,type="class")
+> table(pred=rpart_predict,true=testing$default)
+    true
+pred      0      1
+   0 194393   4044
+   1    565    936
+> mean(rpart_predict==testing$default)
+[1] 0.9769479
+
+
+
+
+
+
